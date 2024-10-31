@@ -50,32 +50,36 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NotesAppTheme {
-                Scaffold(
+                mainContainer(
                     notes = controller.model.notes,
-                    onConfirm = { title: String, text: String ->
+                    onNew = { title: String, text: String ->
                         controller.insertNew(title, text)
-                    })
+                    },
+                    onEdit = { title: String, text: String, note: Note ->
+                        controller.editNote(title, text, note)
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun NotesList(notes: MutableList<Note>) {
+fun NotesList(notes: MutableList<Note>, onEdit: (String, String, Note) -> Unit) {
     LazyColumn {
         items(notes) { note ->
-            println("Displaying note: ${note.title}")
-            DisplayNotes(note)
+            DisplayNotes(note, onEdit)
         }
     }
 }
 
 @Composable
-fun DisplayNotes(note: Note) {
-    var openNote by remember { mutableStateOf(false) }
+fun DisplayNotes(note: Note, onEdit: (String, String, Note) -> Unit) {
+    var openNote = remember { mutableStateOf(false) }
+    var openEdit = remember { mutableStateOf(false) }
 
     Card(
-        onClick = { openNote = !openNote }, // Toggle expansion
+        onClick = { openNote.value = !openNote.value }, // Toggle expansion
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
@@ -94,29 +98,40 @@ fun DisplayNotes(note: Note) {
             // Conditionally expanded text content
             Text(
                 text = note.text,
-                maxLines = if (openNote) Int.MAX_VALUE else 2, // Expand/collapse based on state
-
+                maxLines = if (openNote.value) Int.MAX_VALUE else 2
             )
         }
     }
-    if (openNote) {
+    if (openNote.value) {
         Row(
             modifier = Modifier
                 .padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Button(onClick = {}) { Text("Edit") }
+            Button(onClick = { openEdit.value = true }) { Text("Edit") }
             Button(onClick = {}) { Text("Delete") }
         }
+    }
+    if (openEdit.value) {
+        notesDialog(
+            initialTitle = note.title,
+            initialText = note.text,
+            onVisibilityChange = { openEdit.value = it },
+            onConfirm = { title: String, text: String ->
+                onEdit(title, text, note) //här ??
+            }
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Scaffold(notes: MutableList<Note>, onConfirm: (String, String) -> Unit) {
+fun mainContainer(
+    notes: MutableList<Note>,
+    onNew: (String, String) -> Unit,
+    onEdit: (String, String, Note) -> Unit
+) {
     var openDialog = remember { mutableStateOf(false) }
-    var title by remember { mutableStateOf("") }
-    var text by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -147,43 +162,73 @@ fun Scaffold(notes: MutableList<Note>, onConfirm: (String, String) -> Unit) {
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            NotesList(notes)
+            NotesList(notes, onEdit = { title: String, text: String, note: Note ->
+                onEdit(title, text, note)
+            })
         }
     }
     if (openDialog.value) {
-        AlertDialog(
-            onDismissRequest = { openDialog.value = false },
-            title = { Text("Title:") },
-            text = {
-                Column {
-                    TextField(
-                        value = title,
-                        onValueChange = { title = it }, //it == user input
-                        label = { Text("Enter Title:") }
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    TextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        label = { Text("Enter Text:") }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    onConfirm(title, text)
-                    openDialog.value = false
-                }) {
-                    Text("Confirm")
-                }
-            },
-            dismissButton = {
-                Button(onClick = { openDialog.value = false }) {
-                    Text("Dismiss")
-                }
+        notesDialog(
+            onVisibilityChange = { openDialog.value = it },
+            onConfirm = { title: String, text: String ->
+                onNew(title, text)
             }
         )
     }
+}
+
+@Composable
+fun notesDialog(
+    onVisibilityChange: (Boolean) -> Unit,
+    onConfirm: (String, String) -> Unit,
+    initialTitle: String = "",
+    initialText: String = ""
+) {
+    var title by remember { mutableStateOf(initialTitle) }
+    var text by remember { mutableStateOf(initialText) }
+
+    AlertDialog(
+        onDismissRequest = {
+            title = ""
+            text = ""
+            onVisibilityChange(false)
+        },
+        title = { Text("Title:") },
+        text = {
+            Column {
+                TextField(
+                    value = title,
+                    onValueChange = { title = it }, //it == user input
+                    label = { Text("Enter Title:") }
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                TextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Enter Text:") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onConfirm(title, text)
+                title = ""
+                text = ""
+                onVisibilityChange(false)
+            }) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            Button(onClick = {
+                title = ""
+                text = ""
+                onVisibilityChange(false)
+            }) {
+                Text("Dismiss")
+            }
+        }
+    )
 }
 
 
