@@ -1,10 +1,11 @@
 package com.example.notesapp.model
 
+import androidx.compose.runtime.mutableStateListOf
 import com.example.notesapp.entity.Note
 
 class Model {
 
-    val notes: MutableList<Note> = mutableListOf()
+    val notes = mutableStateListOf<Note>()
 
     fun insertNode(note: Note) {
         notes.add(note)

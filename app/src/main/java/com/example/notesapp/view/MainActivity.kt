@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NotesAppTheme {
-                mainContainer(
+                MainContainer(
                     notes = controller.model.notes,
                     onNew = { title: String, text: String ->
                         controller.insertNew(title, text)
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NotesList(notes: MutableList<Note>, onEdit: (String, String, Note) -> Unit) {
+fun NotesList(notes: List<Note>, onEdit: (String, String, Note) -> Unit) {
     LazyColumn {
         items(notes) { note ->
             DisplayNotes(note, onEdit)
@@ -75,8 +75,8 @@ fun NotesList(notes: MutableList<Note>, onEdit: (String, String, Note) -> Unit) 
 
 @Composable
 fun DisplayNotes(note: Note, onEdit: (String, String, Note) -> Unit) {
-    var openNote = remember { mutableStateOf(false) }
-    var openEdit = remember { mutableStateOf(false) }
+    val openNote = remember { mutableStateOf(false) }
+    val openEdit = remember { mutableStateOf(false) }
 
     Card(
         onClick = { openNote.value = !openNote.value }, // Toggle expansion
@@ -126,12 +126,12 @@ fun DisplayNotes(note: Note, onEdit: (String, String, Note) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun mainContainer(
-    notes: MutableList<Note>,
+fun MainContainer(
+    notes: List<Note>,
     onNew: (String, String) -> Unit,
     onEdit: (String, String, Note) -> Unit
 ) {
-    var openDialog = remember { mutableStateOf(false) }
+    val openDialog = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
